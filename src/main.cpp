@@ -4,11 +4,6 @@
 
 #include <lib/EspNowSensor.h>
 
-#include "OPT300x.h"
-#include <Wire.h>
-
-OPT300x opt300x;
-
 uint8_t   dataBatteryLevel = 0;
 bool datasent=false;
 
@@ -58,8 +53,14 @@ void OnDataRecv(
 }
 
 
-#ifdef TUYA_TY_OPT300X
-  void configureOpt300x() {
+#if (SENSOR_TYPE==SENSOR_OPT300X)
+
+  #include "OPT300x.h"
+  #include <Wire.h>
+
+  OPT300x opt300x;
+
+  void sensorConfig() {
     opt300x.config.RangeNumber = 0b1100;
     opt300x.config.ConvertionTime = 0b1;
     opt300x.config.ModeOfConversionOperation = 0b11;
@@ -73,7 +74,8 @@ void OnDataRecv(
     else printLogMsgTime("OPT300x: Config: Done: %04X\n", opt300x.config.rawData);
   }
 
-  void printOpt300xConfig(bool verbose) {
+  void sensorPrintConfig(bool verbose) {
+      printLogMsgTime("OPT300x Config: %04X\n", opt300x.config.rawData);
       if (verbose) {
         printLogMsg("          Conversion ready (R): %02X\n", opt300x.config.ConversionReady);
         printLogMsg("          Conversion time (R/W): %02X\n", opt300x.config.ConvertionTime);
@@ -87,49 +89,70 @@ void OnDataRecv(
         printLogMsg("          Overflow flag (R-only): %02X\n", opt300x.config.OverflowFlag);
         printLogMsg("          Range number (R/W): %02X\n", opt300x.config.RangeNumber);
       }
-      else printLogMsgTime("OPT300x Config: %04X\n", opt300x.config.rawData);
   }
 
-  void TuyaTYOPT3001_setup() {
+  void sensorSetup() {
     Wire.begin(I2C_SDA_PIN, I2C_SCL_PIN);
     opt300x.begin(I2C_ADDRESS);
 
     printLogMsgTime("OPT300x: Manufacturer:%04X Device:%04X\n", opt300x.readManufacturerID(),opt300x.readDeviceID());
     opt300x.readConfig();
-    configureOpt300x();
+    sensorConfig();
+  }
 
+  void sensorRead() {
     OPT300x_S result = opt300x.readResult();
     opt300x.readHighLimit();
     opt300x.readLowLimit();
     printLogMsgTime("OPT300x: Read: Result: %0.1f (Result=%04X, Exponent=%02X)\n", opt300x.result, result.raw.Result, result.raw.Exponent);
     printLogMsgTime("OPT300x: Read: High-Limit: %0.1f Low-Limit: %0.1f\n", opt300x.highLimit, opt300x.lowLimit);
+  }
 
-    float hysteresis = VALUE_1_HYSTERESIS;
-    if (hysteresis<=0) hysteresis = VALUE_1_HYSTERESIS_INIT;
+  void sensorSetLimits() {
+    float hysteresis = opt300x.result*SETTINGS_HYSTERESIS_PERC * 0.01;
+    if (hysteresis<=SETTINGS_HYSTERESIS_MIN) hysteresis = SETTINGS_HYSTERESIS_MIN;
+    if (hysteresis<=0) hysteresis = SETTINGS_HYSTERESIS_MIN_INIT;
     opt300x.highLimit = opt300x.result + hysteresis;
     opt300x.lowLimit = opt300x.result - hysteresis;
+    printLogMsgTime("OPT300x: SetLimits: calculated hysteresis: %0.1f\n", hysteresis);
     if (opt300x.highLimit<hysteresis) opt300x.highLimit = hysteresis;
     if (opt300x.lowLimit<0) opt300x.lowLimit = 0;
     opt300x.writeHighLimit(opt300x.highLimit);
     opt300x.writeLowLimit(opt300x.lowLimit);
-    printLogMsgTime("OPT300x: Write: High-Limit: %0.1f Low-Limit: %0.1f\n", opt300x.highLimit, opt300x.lowLimit);
+    printLogMsgTime("OPT300x: SetLimits: Write: High-Limit: %0.1f Low-Limit: %0.1f\n", opt300x.highLimit, opt300x.lowLimit);
   }
 
-  void TuyaTYOPT3001_data() {
+  void sensorEspNowData() {
+      EspNowSensor.espnowMessageDataSetProgram(0xA0); //legacy 
       EspNowSensor.espnowMessageDataAddSensorValue(DPID_STATE, uint8_t(opt300x.config.FlagHigh) * 2 + uint8_t(opt300x.config.FlagLow));
       EspNowSensor.espnowMessageDataAddSensorValue(DPID_BATTERY,dataBatteryLevel); 
-      EspNowSensor.espnowMessageDataAddSensorValue(DPID_VALUE1,uint32_t(opt300x.readResult().lux * 10.0));   
+      EspNowSensor.espnowMessageDataAddSensorValue(DPID_VALUE1,uint32_t(opt300x.result * 10.0));  
+      EspNowSensor.espnowMessageDataAddSensorValue(DPID_VALUE2,uint32_t(opt300x.highLimit * 10.0));   
+      EspNowSensor.espnowMessageDataAddSensorValue(DPID_VALUE3,uint32_t(opt300x.lowLimit * 10.0));    
   }
-#endif //TUYA_TY_OPT300X
+
+#endif //SENSOR_OPT300x
+
+#ifndef SENSOR_TYPE
+    #define SENSOR_TYPE       SENSOR_NONE
+    void sensorSetup(){
+    printLogMsgTime("Sensor setup: no sensor defined, enter config mode\n");
+      EspNowSensor.configmodeEnter();
+    };    
+    void sensorRead(){};
+    void sensorSetLimits(){};
+    void sensorEspNowData(){};    
+#endif
+
 //=============================Main
 void setup() {
   EspNowSensor.begin();
   EspNowSensor.registerSendCallback(OnDataSent);
   EspNowSensor.registerRecvCallback(OnDataRecv);
 
-  #ifdef TUYA_TY_OPT300X
-      TuyaTYOPT3001_setup();    
-  #endif
+  sensorSetup();    
+  sensorRead();
+  sensorSetLimits();
 
   dataBatteryLevel = EspNowSensor.batteryLevel();
 }
@@ -141,9 +164,7 @@ void loop() {
   else if (EspNowSensor.broadcastSending) ;
   else if (!EspNowSensor.readyToSend) EspNowSensor.espnowAuthCheck();
   else if (!datasent){
-    #ifdef TUYA_TY_OPT300X
-        TuyaTYOPT3001_data();    
-    #endif
+    sensorEspNowData();    
     datasent = true;                                 
   }
   else EspNowSensor.powerOff();
