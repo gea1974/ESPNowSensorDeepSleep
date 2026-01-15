@@ -1,6 +1,6 @@
 
 #define PRODUCT                             "ESP!NOW Sensor - Deep sleep"
-#define VERSION                             0x001001
+#define VERSION                             0x001002
 #define OWNER                               "gea"
 
 #define SENSOR_NONE                         0

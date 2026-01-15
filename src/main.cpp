@@ -102,8 +102,8 @@ void OnDataRecv(
 
   void sensorRead() {
     OPT300x_S result = opt300x.readResult();
-    opt300x.readHighLimit();
-    opt300x.readLowLimit();
+    OPT300x_S hiLimit = opt300x.readHighLimit();
+    OPT300x_S loLimit = opt300x.readLowLimit();
     printLogMsgTime("OPT300x: Read: Result: %0.1f (Result=%04X, Exponent=%02X)\n", opt300x.result, result.raw.Result, result.raw.Exponent);
     printLogMsgTime("OPT300x: Read: High-Limit: %0.1f Low-Limit: %0.1f\n", opt300x.highLimit, opt300x.lowLimit);
   }
@@ -117,8 +117,9 @@ void OnDataRecv(
     printLogMsgTime("OPT300x: SetLimits: calculated hysteresis: %0.1f\n", hysteresis);
     if (opt300x.highLimit<hysteresis) opt300x.highLimit = hysteresis;
     if (opt300x.lowLimit<0) opt300x.lowLimit = 0;
-    opt300x.writeHighLimit(opt300x.highLimit);
-    opt300x.writeLowLimit(opt300x.lowLimit);
+
+    OPT300x_ErrorCode errorHiLimit = opt300x.writeHighLimit(opt300x.highLimit);
+    OPT300x_ErrorCode errorLoLimit = opt300x.writeLowLimit(opt300x.lowLimit);
     printLogMsgTime("OPT300x: SetLimits: Write: High-Limit: %0.1f Low-Limit: %0.1f\n", opt300x.highLimit, opt300x.lowLimit);
   }
 
@@ -126,12 +127,12 @@ void OnDataRecv(
       EspNowSensor.espnowMessageDataSetProgram(0xA0); //legacy 
       EspNowSensor.espnowMessageDataAddSensorValue(DPID_STATE, uint8_t(opt300x.config.FlagHigh) * 2 + uint8_t(opt300x.config.FlagLow));
       EspNowSensor.espnowMessageDataAddSensorValue(DPID_BATTERY,dataBatteryLevel); 
-      EspNowSensor.espnowMessageDataAddSensorValue(DPID_VALUE1,uint32_t(opt300x.result * 10.0));  
-      EspNowSensor.espnowMessageDataAddSensorValue(DPID_VALUE2,uint32_t(opt300x.highLimit * 10.0));   
-      EspNowSensor.espnowMessageDataAddSensorValue(DPID_VALUE3,uint32_t(opt300x.lowLimit * 10.0));    
+      EspNowSensor.espnowMessageDataAddSensorValue(DPID_VALUE1,uint32_t(opt300x.result));  
+      EspNowSensor.espnowMessageDataAddSensorValue(DPID_VALUE2,uint32_t(opt300x.highLimit));   
+      EspNowSensor.espnowMessageDataAddSensorValue(DPID_VALUE3,uint32_t(opt300x.lowLimit));    
   }
 
-#endif //SENSOR_OPT300x
+#endif //SENSOR_TYPE==SENSOR_OPT300X)
 
 #ifndef SENSOR_TYPE
     #define SENSOR_TYPE       SENSOR_NONE
@@ -153,6 +154,7 @@ void setup() {
   sensorSetup();    
   sensorRead();
   sensorSetLimits();
+  sensorRead();
 
   dataBatteryLevel = EspNowSensor.batteryLevel();
 }
