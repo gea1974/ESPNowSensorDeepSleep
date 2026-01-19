@@ -29,7 +29,6 @@
     #define DPID_BATTERY                    4
     #define DPID_VALUE1                     2
     #define DPID_VALUE2                     11
-    #define DPID_VALUE3                     12
 
 
     #define SETTINGS_CONFIG0

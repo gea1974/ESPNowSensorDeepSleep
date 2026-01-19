@@ -124,12 +124,10 @@ void OnDataRecv(
   }
 
   void sensorEspNowData() {
-      EspNowSensor.espnowMessageDataSetProgram(0xA0); //legacy 
       EspNowSensor.espnowMessageDataAddSensorValue(DPID_STATE, uint8_t(opt300x.config.FlagHigh) * 2 + uint8_t(opt300x.config.FlagLow));
       EspNowSensor.espnowMessageDataAddSensorValue(DPID_BATTERY,dataBatteryLevel); 
       EspNowSensor.espnowMessageDataAddSensorValue(DPID_VALUE1,uint32_t(opt300x.result));  
-      EspNowSensor.espnowMessageDataAddSensorValue(DPID_VALUE2,uint32_t(opt300x.highLimit));   
-      EspNowSensor.espnowMessageDataAddSensorValue(DPID_VALUE3,uint32_t(opt300x.lowLimit));    
+      EspNowSensor.espnowMessageDataAddSensorValue(DPID_VALUE2,uint32_t(opt300x.highLimit-opt300x.result));    
   }
 
 #endif //SENSOR_TYPE==SENSOR_OPT300X)
@@ -154,7 +152,6 @@ void setup() {
   sensorSetup();    
   sensorRead();
   sensorSetLimits();
-  sensorRead();
 
   dataBatteryLevel = EspNowSensor.batteryLevel();
 }
