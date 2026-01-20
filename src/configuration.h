@@ -1,6 +1,7 @@
 
 #define PRODUCT                             "ESP!NOW Sensor - Deep sleep"
-#define VERSION                             0x001002
+#define PRODUCT_FAMILY_KEY                  0x02
+#define VERSION                             0x001003
 #define OWNER                               "gea"
 
 #define SENSOR_NONE                         0
@@ -13,7 +14,7 @@
 #ifdef TUYA_TY_OPT300X 
     #define DESCRIPTION                     "Tuya TY Sensor w/o MCU"
     #define PRODUCT_ID                      "TY"
-
+    #define PRODUCT_KEY                     0x07
     #define ACTIVE_PIN                      6
     #define ACTIVE_PIN_POLARITY             LOW
     #define SETUP_PIN                       1
@@ -44,7 +45,6 @@
     #define SETTINGS_HYSTERESIS_PERC        (float) EspNowSensor.settings.Config[1]
     #define SETTINGS_HYSTERESIS_PERC_INIT   SETTINGS_CONFIG1_INIT
 
-
     #define POWER_OFF_DEEPSLEEP
     #define DEEPSLEEP_WAKEUP_GPIO_PIN1      1
     #define DEEPSLEEP_WAKEUP_GPIO_PIN2      2
@@ -55,9 +55,8 @@
     #define PRODUCT_ID                          "SENSOR"
 #endif
 #ifndef PRODUCT_KEY
-    #define PRODUCT_KEY                         0xB0
+    #define PRODUCT_KEY                         0x00
 #endif
-
 #ifndef DESCRIPTION
     #define DESCRIPTION                         "Generic Sensor"
 #endif

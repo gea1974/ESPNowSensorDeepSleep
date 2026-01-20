@@ -3,6 +3,7 @@
     #define VERSION                             0x000000
     #define PRODUCT_ID                          "SENSOR"
     #define DESCRIPTION                         "Generic ESP!Now Sensor"
+    #define PRODUCT_FAMILY_KEY                  0x00
     #define PRODUCT_KEY                         0x00
     #define OWNER                               "gea"
 #endif
@@ -193,7 +194,9 @@
 #if (!defined ESPNOW_TELEGRAM_WIZMOTE && !defined ESPNOW_TELEGRAM_EXTENDED) 
     #define ESPNOW_TELEGRAM_EXTENDED
 #endif
-
+#ifndef ESPNOW_TELEGRAM_PROGRAM
+    #define ESPNOW_TELEGRAM_PROGRAM             0xD0
+#endif
 
 #if (defined ACTIVE_PIN && !defined ACTIVE_PIN_POLARITY)
     #define ACTIVE_PIN_POLARITY                 LOW 
